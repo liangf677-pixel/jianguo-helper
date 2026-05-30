@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.open-meteo.com;">
+  <title>坚果</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-light">
+  <div class="app-container">
+    <!-- ===== 侧边栏 ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">T</div>
+        <span class="sidebar-logo-text">坚果</span>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <div class="nav-section-title">任务管理</div>
+        <div class="nav-item active" data-view="tasks-today">
+          <i>&#9745;</i> <span>今日任务</span>
+          <span class="nav-badge hidden" id="todayBadge">0</span>
+        </div>
+        <div class="nav-item" data-view="tasks-upcoming">
+          <i>&#128197;</i> <span>即将到期</span>
+          <span class="nav-badge hidden" id="upcomingBadge">0</span>
+        </div>
+        <div class="nav-item" data-view="tasks-all">
+          <i>&#128203;</i> <span>全部任务</span>
+        </div>
+        <div class="nav-item" data-view="tasks-completed">
+          <i>&#10003;</i> <span>已完成</span>
+        </div>
+        <div class="nav-item" data-view="tasks-overdue">
+          <i>&#9888;</i> <span>已逾期</span>
+          <span class="nav-badge hidden" id="overdueBadge">0</span>
+        </div>
+
+        <div class="nav-section-title">时间工具</div>
+        <div class="nav-item" data-view="alarms">
+          <i>&#9200;</i> <span>闹钟管理</span>
+        </div>
+        <div class="nav-item" data-view="timer">
+          <i>&#9202;</i> <span>计时器</span>
+        </div>
+
+        <div class="nav-section-title">生活助手</div>
+        <div class="nav-item" data-view="weather">
+          <i>&#9728;</i> <span>天气预报</span>
+        </div>
+        <div class="nav-item" data-view="notes">
+          <i>&#128221;</i> <span>便签</span>
+        </div>
+        <div class="nav-item" data-view="anniversaries">
+          <i>&#128150;</i> <span>纪念日</span>
+        </div>
+
+        <div class="nav-section-title">其他</div>
+        <div class="nav-item" data-view="stats">
+          <i>&#128200;</i> <span>数据统计</span>
+        </div>
+        <div class="nav-item" data-view="settings">
+          <i>&#9881;</i> <span>设置</span>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="text-xs text-secondary" style="color:var(--text-tertiary)">
+          v1.0.1 | 离线可用
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== 主内容区 ===== -->
+    <main class="main-content">
+      <!-- 顶部导航栏 -->
+      <header class="app-header">
+        <div class="header-left">
+          <span class="header-title" id="viewTitle">今日任务</span>
+        </div>
+        <div class="header-center">
+          <div>
+            <div class="digital-clock" id="digitalClock">00:00:00</div>
+            <div class="digital-date" id="digitalDate">2024年1月1日 星期一</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="weather-mini" id="weatherMini" title="点击查看详细天气">
+            <span id="weatherMiniIcon">&#9728;</span>
+            <span id="weatherMiniText">--°C</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 内容区域 -->
+      <div class="content-area" id="contentArea">
+        <!-- 视图内容由 JS 动态渲染 -->
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== 任务编辑模态框 ===== -->
+  <div class="modal-overlay hidden" id="taskModalOverlay">
+    <div class="modal modal-lg" id="taskModal">
+      <div class="modal-header">
+        <span class="modal-title" id="taskModalTitle">新建任务</span>
+        <button class="modal-close" id="taskModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="taskForm">
+          <input type="hidden" id="taskId">
+          <div class="form-group">
+            <label class="form-label">任务标题 <span style="color:var(--danger)">*</span></label>
+            <input type="text" class="form-input" id="taskTitle" placeholder="输入任务标题..." required maxlength="200">
+          </div>
+          <div class="form-group">
+            <label class="form-label">任务描述</label>
+            <textarea class="form-textarea" id="taskDesc" placeholder="输入任务描述（可选）..." rows="3"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label">截止日期</label>
+              <input type="datetime-local" class="form-input" id="taskDueDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">优先级</label>
+              <select class="form-select" id="taskPriority">
+                <option value="low">&#128994; 低优先级</option>
+                <option value="medium" selected>&#128993; 中优先级</option>
+                <option value="high">&#128308; 高优先级</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">分类</label>
+              <select class="form-select" id="taskCategory">
+                <option value="工作">工作</option>
+                <option value="学习">学习</option>
+                <option value="生活">生活</option>
+                <option value="健康">健康</option>
+                <option value="社交">社交</option>
+                <option value="财务">财务</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">状态</label>
+              <select class="form-select" id="taskStatus">
+                <option value="pending">待完成</option>
+                <option value="in_progress">进行中</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">提前提醒</label>
+              <select class="form-select" id="taskRemindBefore">
+                <option value="">不提醒</option>
+                <option value="15min">提前 15 分钟</option>
+                <option value="30min">提前 30 分钟</option>
+                <option value="1hour">提前 1 小时</option>
+                <option value="2hour">提前 2 小时</option>
+                <option value="1day">提前 1 天</option>
+                <option value="1week">提前 1 周</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">重复周期</label>
+              <select class="form-select" id="taskRepeat">
+                <option value="none">不重复</option>
+                <option value="daily">每天</option>
+                <option value="weekly">每周</option>
+                <option value="monthly">每月</option>
+                <option value="yearly">每年</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="taskModalCancel">取消</button>
+        <button class="btn btn-primary" id="taskModalSave">保存任务</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 闹钟编辑模态框 ===== -->
+  <div class="modal-overlay hidden" id="alarmModalOverlay">
+    <div class="modal modal-sm" id="alarmModal">
+      <div class="modal-header">
+        <span class="modal-title" id="alarmModalTitle">新建闹钟</span>
+        <button class="modal-close" id="alarmModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="alarmForm">
+          <input type="hidden" id="alarmId">
+          <div class="form-group">
+            <label class="form-label">闹钟时间</label>
+            <input type="time" class="form-input" id="alarmTime" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">闹钟名称</label>
+            <input type="text" class="form-input" id="alarmName" placeholder="例如：起床闹钟">
+          </div>
+          <div class="form-group">
+            <label class="form-label">重复日期</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <label class="form-check"><input type="checkbox" value="mon"> 周一</label>
+              <label class="form-check"><input type="checkbox" value="tue"> 周二</label>
+              <label class="form-check"><input type="checkbox" value="wed"> 周三</label>
+              <label class="form-check"><input type="checkbox" value="thu"> 周四</label>
+              <label class="form-check"><input type="checkbox" value="fri"> 周五</label>
+              <label class="form-check"><input type="checkbox" value="sat"> 周六</label>
+              <label class="form-check"><input type="checkbox" value="sun"> 周日</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-check">
+              <input type="checkbox" id="alarmEnabled" checked>
+              <span>启用闹钟</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="alarmModalCancel">取消</button>
+        <button class="btn btn-primary" id="alarmModalSave">保存闹钟</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 纪念日编辑模态框 ===== -->
+  <div class="modal-overlay hidden" id="anniversaryModalOverlay">
+    <div class="modal modal-sm" id="anniversaryModal">
+      <div class="modal-header">
+        <span class="modal-title" id="anniversaryModalTitle">添加纪念日</span>
+        <button class="modal-close" id="anniversaryModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="anniversaryForm">
+          <input type="hidden" id="anniversaryId">
+          <div class="form-group">
+            <label class="form-label">名称</label>
+            <input type="text" class="form-input" id="anniversaryName" placeholder="例如：生日、纪念日" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">日期</label>
+            <input type="date" class="form-input" id="anniversaryDate" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">类型</label>
+            <select class="form-select" id="anniversaryType">
+              <option value="birthday">生日</option>
+              <option value="anniversary">纪念日</option>
+              <option value="festival">节日</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">提前提醒</label>
+            <select class="form-select" id="anniversaryRemind">
+              <option value="0">当天提醒</option>
+              <option value="1">提前 1 天</option>
+              <option value="3">提前 3 天</option>
+              <option value="7">提前 1 周</option>
+              <option value="14">提前 2 周</option>
+              <option value="30">提前 1 个月</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="anniversaryModalCancel">取消</button>
+        <button class="btn btn-primary" id="anniversaryModalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 闹钟响铃全屏覆盖层 ===== -->
+  <div class="alarm-overlay hidden" id="alarmFullscreen">
+    <div class="alarm-modal">
+      <div style="font-size:48px;margin-bottom:8px;">&#9200;</div>
+      <div class="alarm-time-display" id="alarmFullTime">00:00</div>
+      <div class="alarm-name-display" id="alarmFullName">闹钟</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-lg w-full" id="alarmDismiss">关闭闹钟</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline flex-1 alarm-snooze" data-min="5">5分钟后</button>
+          <button class="btn btn-outline flex-1 alarm-snooze" data-min="10">10分钟后</button>
+          <button class="btn btn-outline flex-1 alarm-snooze" data-min="15">15分钟后</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Toast 通知容器 ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ===== 确认对话框 ===== -->
+  <div class="modal-overlay hidden" id="confirmModalOverlay">
+    <div class="modal modal-sm" id="confirmModal">
+      <div class="modal-header">
+        <span class="modal-title" id="confirmModalTitle">确认</span>
+        <button class="modal-close" id="confirmModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage">你确定吗？</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="confirmModalCancel">取消</button>
+        <button class="btn btn-danger" id="confirmModalOk">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 脚本加载 ===== -->
+  <script src="js/app.js"></script>
+  <script src="js/task.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/note.js"></script>
+  <script src="js/anniversary.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>
